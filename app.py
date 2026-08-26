@@ -11,7 +11,9 @@ Run locally: streamlit run app.py
 import io
 import os
 import json
+import re
 import streamlit as st
+import pandas as pd
 from datetime import datetime
 
 # Try to import Plotly for rich interactive financial charts
@@ -24,6 +26,7 @@ except ImportError:
 
 from clo_extractor import CLOExtractor
 from committee_memo_generator import CommitteeMemoGenerator
+from offline_extractor import OfflineCLOExtractor
 
 st.set_page_config(
     page_title="CLO Surveillance & Committee Studio",
@@ -76,17 +79,39 @@ st.markdown("""
         box-shadow: 0 6px 12px rgba(0,0,0,0.08);
     }
     .metric-value {
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 700;
         color: #0D47A1;
         margin-top: 4px;
     }
     .metric-label {
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 600;
         color: #616161;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+    }
+    /* Section Boxes */
+    .refi-card {
+        background: linear-gradient(135deg, #E8EAF6 0%, #EDE7F6 100%);
+        border: 1px solid #C5CAE9;
+        border-radius: 10px;
+        padding: 18px 24px;
+        margin-bottom: 20px;
+    }
+    .covenant-pass {
+        background-color: #E8F5E9;
+        border-left: 4px solid #2E7D32;
+        padding: 10px 14px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+    .covenant-breach {
+        background-color: #FFEBEE;
+        border-left: 4px solid #C62828;
+        padding: 10px 14px;
+        border-radius: 6px;
+        margin-bottom: 8px;
     }
     /* Badges */
     .badge-ai {
@@ -112,13 +137,13 @@ st.markdown("""
 # Sidebar Configuration
 # ----------------------------------------------------------------------------
 st.sidebar.title("🏦 CLO Studio Engine")
-st.sidebar.caption("Automated CLO Analytics & Committee Prep System")
+st.sidebar.caption("Automated CLO Surveillance & Committee System")
 
 engine_mode = st.sidebar.radio(
     "Extraction Engine Mode",
-    ["🤖 AI LLM Agent", "⚡ Standalone Offline Engine (No API Key)"],
-    index=0 if os.getenv("OPENROUTER_API_KEY") or os.getenv("GEMINI_API_KEY") or os.getenv("GROQ_API_KEY") else 1,
-    help="AI LLM provides semantic extraction; Standalone Offline Engine uses rule-based parsing with 0 API dependencies."
+    ["⚡ Standalone Offline Engine (No API Key)", "🤖 AI LLM Agent"],
+    index=0,
+    help="Standalone Offline Engine uses deterministic parsing with 0 API calls; AI LLM provides semantic extraction with auto-fallback."
 )
 
 is_offline = "Offline" in engine_mode
@@ -161,7 +186,7 @@ else:
     st.sidebar.info("⚡ Running in 100% Offline Rule-Based Mode. Zero API calls or keys required.")
 
 # ----------------------------------------------------------------------------
-# Session State Initialization & Helper Functions
+# Session State Initialization
 # ----------------------------------------------------------------------------
 if "extracted_data" not in st.session_state:
     st.session_state["extracted_data"] = None
@@ -171,40 +196,84 @@ if "memo_text" not in st.session_state:
 
 def _build_excel_buffer(data: dict):
     try:
-        import pandas as pd
         buf = io.BytesIO()
         with pd.ExcelWriter(buf, engine="openpyxl") as writer:
             summary = pd.DataFrame({
-                'Metric': ['Fund Name', 'Trustee', 'Portfolio Manager', 'Report Date',
-                           'Closing Date', 'Portfolio Size ($M)', 'Total Loans', 'WAC (%)',
-                           'WAL (years)', 'Weighted Avg Rating', 'Cumulative Default Rate (%)',
-                           '30+ DPD ($M)', '60+ DPD ($M)', 'Compliance Status'],
-                'Value': [data.get('fund_name', 'N/A'), data.get('trustee', 'N/A'),
-                          data.get('portfolio_manager', 'N/A'), data.get('report_date', 'N/A'),
-                          data.get('closing_date', 'N/A'), data.get('current_portfolio_size', 'N/A'),
-                          data.get('total_loans', 'N/A'), data.get('wac', 'N/A'),
-                          data.get('wal', 'N/A'), data.get('weighted_avg_rating', 'N/A'),
-                          data.get('cumulative_default_rate', 'N/A'), data.get('30_plus_dpd', 'N/A'),
-                          data.get('60_plus_dpd', 'N/A'), data.get('compliance_status', 'N/A')],
+                'Metric': [
+                    'Fund Name', 'Trustee', 'Portfolio Manager', 'Report Date',
+                    'Reporting Period', 'Closing Date', 'Initial Collateral ($M)',
+                    'Current Portfolio Size ($M)', 'Total Loans', 'WAC (%)',
+                    'WAL (years)', 'Weighted Avg Rating', 'Cumulative Default Rate (%)',
+                    'Cumulative Default Par ($M)', '30+ DPD ($M)', '60+ DPD ($M)',
+                    'Defaulted Loans Count', 'Loans Paid Off', 'Amortization YTD (%)',
+                    '12M Upgrades', '12M Downgrades', 'Compliance Status'
+                ],
+                'Value': [
+                    data.get('fund_name', 'N/A'),
+                    data.get('trustee', 'N/A'),
+                    data.get('portfolio_manager', 'N/A'),
+                    data.get('report_date', 'N/A'),
+                    data.get('reporting_period', 'N/A'),
+                    data.get('closing_date', 'N/A'),
+                    data.get('initial_collateral_size', 'N/A'),
+                    data.get('current_portfolio_size', 'N/A'),
+                    data.get('total_loans', 'N/A'),
+                    data.get('wac', 'N/A'),
+                    data.get('wal', 'N/A'),
+                    data.get('weighted_avg_rating', 'N/A'),
+                    data.get('cumulative_default_rate', 'N/A'),
+                    data.get('cumulative_loan_defaults_par', 'N/A'),
+                    data.get('30_plus_dpd', 'N/A'),
+                    data.get('60_plus_dpd', 'N/A'),
+                    data.get('total_defaulted_loans', 'N/A'),
+                    data.get('loans_paid_off', 'N/A'),
+                    data.get('amortization_ytd', 'N/A'),
+                    data.get('loans_upgraded_12m', 'N/A'),
+                    data.get('loans_downgraded_12m', 'N/A'),
+                    data.get('compliance_status', 'N/A')
+                ]
             })
             summary.to_excel(writer, sheet_name='Summary', index=False)
-            if data.get('sector_breakdown'):
-                pd.DataFrame([{'Sector': k, 'Allocation (%)': v}
-                              for k, v in data['sector_breakdown'].items()]
-                             ).to_excel(writer, sheet_name='Sectors', index=False)
-            if data.get('credit_quality'):
-                pd.DataFrame([{'Rating': k, 'Amount (%)': v}
-                              for k, v in data['credit_quality'].items()]
-                             ).to_excel(writer, sheet_name='Credit Quality', index=False)
+
             if data.get('class_notes'):
-                pd.DataFrame(data['class_notes']).to_excel(writer, sheet_name='Class Notes', index=False)
+                pd.DataFrame(data['class_notes']).to_excel(writer, sheet_name='Capital Structure', index=False)
+
+            refi_data = {
+                'Parameter': [
+                    'Refinancing Target Window', 'Expected Refinancing Costs',
+                    'Estimated Annual Interest Savings', 'Market Spread Environment',
+                    'Manager Intention & Strategy'
+                ],
+                'Details': [
+                    data.get('refinancing_window', 'N/A'),
+                    data.get('expected_refi_costs', 'N/A'),
+                    data.get('annual_interest_savings', 'N/A'),
+                    data.get('spread_environment', 'N/A'),
+                    data.get('manager_intention', 'N/A')
+                ]
+            }
+            pd.DataFrame(refi_data).to_excel(writer, sheet_name='Refinancing Analysis', index=False)
+
+            if data.get('sector_breakdown'):
+                pd.DataFrame([
+                    {'Sector': k, 'Allocation': v}
+                    for k, v in data['sector_breakdown'].items()
+                ]).to_excel(writer, sheet_name='Sectors', index=False)
+
+            if data.get('credit_quality'):
+                pd.DataFrame([
+                    {'Rating': k, 'Allocation': v}
+                    for k, v in data['credit_quality'].items()
+                ]).to_excel(writer, sheet_name='Credit Quality', index=False)
+
             if data.get('covenants'):
-                pd.DataFrame([{'Covenant': k, 'Status': v}
-                              for k, v in data['covenants'].items()]
-                             ).to_excel(writer, sheet_name='Covenants', index=False)
+                pd.DataFrame([
+                    {'Covenant': k, 'Status & Requirement': v}
+                    for k, v in data['covenants'].items()
+                ]).to_excel(writer, sheet_name='Covenants', index=False)
+
             if data.get('major_credit_events'):
-                pd.DataFrame({'Event': data['major_credit_events']}
-                             ).to_excel(writer, sheet_name='Credit Events', index=False)
+                pd.DataFrame({'Event': data['major_credit_events']}).to_excel(writer, sheet_name='Credit Events', index=False)
         return buf
     except Exception as e:
         st.warning(f"Excel build warning: {e}")
@@ -220,7 +289,7 @@ st.markdown(f"""
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div>
             <h1 class="hero-title">🏦 CLO Surveillance & Refinancing Studio</h1>
-            <div class="hero-subtitle">Structured Collateral Extraction • Portfolio Analytics • Committee Memo Generation</div>
+            <div class="hero-subtitle">Structured Collateral Extraction • Portfolio Analytics • Committee Memorandum Packages</div>
         </div>
         <div>
             {engine_badge}
@@ -244,20 +313,20 @@ main_tabs = st.tabs([
 # Tab 1: Upload & Preset Hub
 # ----------------------------------------------------------------------------
 with main_tabs[0]:
-    st.subheader("📄 Memo Input & Preset Switcher")
-    st.write("Load a sample CLO memo preset or upload your fund's surveillance/refinancing report.")
+    st.subheader("📄 Memo Ingest & Preset Switcher")
+    st.write("Load a pre-configured CLO memo preset or ingest your fund's surveillance/refinancing report (.pdf, .txt, .md).")
 
     # Preset Loader Buttons
     col_p1, col_p2, col_clear = st.columns([1, 1, 1])
     with col_p1:
-        if st.button("📋 Load Surveillance Memo Sample", use_container_width=True):
+        if st.button("📋 Load Surveillance Memo (Apex Fund IV)", use_container_width=True):
             if os.path.exists("sample_clo_memo.txt"):
                 with open("sample_clo_memo.txt", "r", encoding="utf-8") as f:
                     st.session_state["memo_text"] = f.read()
                 st.success("Loaded sample_clo_memo.txt (Apex Senior Loan Fund IV)!")
                 st.rerun()
     with col_p2:
-        if st.button("🔄 Load Refinancing Memo Sample", use_container_width=True):
+        if st.button("🔄 Load Refinancing Memo (Horizon Fund II)", use_container_width=True):
             if os.path.exists("sample_refi_memo.txt"):
                 with open("sample_refi_memo.txt", "r", encoding="utf-8") as f:
                     st.session_state["memo_text"] = f.read()
@@ -279,7 +348,7 @@ with main_tabs[0]:
             key="file_uploader_input"
         )
         if uploaded is not None:
-            if uploaded.type == "application/pdf":
+            if uploaded.type == "application/pdf" or uploaded.name.lower().endswith(".pdf"):
                 try:
                     import pdfplumber
                     with pdfplumber.open(io.BytesIO(uploaded.read())) as pdf:
@@ -294,7 +363,7 @@ with main_tabs[0]:
         pasted_text = st.text_area(
             "Paste memo text content here",
             value=st.session_state.get("memo_text", ""),
-            height=250,
+            height=260,
             placeholder="Paste CLO surveillance or refinancing memo text...",
             key="pasted_text_area"
         )
@@ -318,8 +387,8 @@ with main_tabs[0]:
     memo_to_run = input_text or st.session_state.get("memo_text", "")
 
     if memo_to_run:
-        st.markdown("##### Current Memo Preview")
-        st.text_area("Preview", memo_to_run[:2000], height=180, disabled=True)
+        st.markdown(f"##### Current Memo Preview ({len(memo_to_run.splitlines())} lines, {len(memo_to_run):,} chars)")
+        st.text_area("Preview", memo_to_run[:2500], height=180, disabled=True)
 
     st.markdown("---")
     if st.button("🚀 Process & Extract CLO Data", type="primary", use_container_width=True):
@@ -339,7 +408,7 @@ with main_tabs[0]:
 
                 if data:
                     st.session_state["extracted_data"] = data
-                    st.success("✨ Extraction complete! Head over to 'Executive Dashboard' or 'CLO Committee Studio'.")
+                    st.success("✨ Extraction complete! Review data in 'Executive Dashboard' or generate committee briefs in 'CLO Committee Studio'.")
                 else:
                     st.error("Extraction failed to return structured data.")
             except Exception as e:
@@ -355,16 +424,43 @@ with main_tabs[1]:
     else:
         engine_used = data.get("_metadata", {}).get("engine", provider)
         st.markdown(f"### 📊 Portfolio Dashboard — **{data.get('fund_name', 'CLO Portfolio')}**")
-        st.caption(f"Extraction Engine: `{engine_used}` | Report Date: {data.get('report_date', 'N/A')} | Manager: {data.get('portfolio_manager', 'N/A')}")
+        st.caption(f"Extraction Engine: `{engine_used}` | Report Date: {data.get('report_date', 'N/A')} | Manager: {data.get('portfolio_manager', 'N/A')} | Trustee: {data.get('trustee', 'N/A')}")
 
-        # Top Metric Cards
+        # Top Metric Cards (Row 1)
         c1, c2, c3, c4, c5, c6 = st.columns(6)
         c1.markdown(f'<div class="metric-card"><div class="metric-label">Portfolio Size</div><div class="metric-value">${data.get("current_portfolio_size", 0)}M</div></div>', unsafe_allow_html=True)
         c2.markdown(f'<div class="metric-card"><div class="metric-label">Total Loans</div><div class="metric-value">{data.get("total_loans", 0)}</div></div>', unsafe_allow_html=True)
         c3.markdown(f'<div class="metric-card"><div class="metric-label">WAC</div><div class="metric-value">{data.get("wac", 0)}%</div></div>', unsafe_allow_html=True)
-        c4.markdown(f'<div class="metric-card"><div class="metric-label">WAL</div><div class="metric-value">{data.get("wal", 0)}y</div></div>', unsafe_allow_html=True)
-        c5.markdown(f'<div class="metric-card"><div class="metric-label">Default Rate</div><div class="metric-value">{data.get("cumulative_default_rate", 0)}%</div></div>', unsafe_allow_html=True)
-        c6.markdown(f'<div class="metric-card"><div class="metric-label">30+ DPD</div><div class="metric-value">${data.get("30_plus_dpd", 0)}M</div></div>', unsafe_allow_html=True)
+        c4.markdown(f'<div class="metric-card"><div class="metric-label">WAL</div><div class="metric-value">{data.get("wal", 0)} yrs</div></div>', unsafe_allow_html=True)
+        c5.markdown(f'<div class="metric-card"><div class="metric-label">Avg Rating</div><div class="metric-value">{data.get("weighted_avg_rating", "N/A")}</div></div>', unsafe_allow_html=True)
+        c6.markdown(f'<div class="metric-card"><div class="metric-label">Default Rate</div><div class="metric-value">{data.get("cumulative_default_rate", 0)}%</div></div>', unsafe_allow_html=True)
+
+        # Row 2: Secondary Delinquency & Amortization KPIs
+        st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+        k1, k2, k3, k4, k5 = st.columns(5)
+        k1.markdown(f'<div class="metric-card"><div class="metric-label">30+ DPD</div><div class="metric-value">${data.get("30_plus_dpd", 0)}M</div></div>', unsafe_allow_html=True)
+        k2.markdown(f'<div class="metric-card"><div class="metric-label">60+ DPD</div><div class="metric-value">${data.get("60_plus_dpd", 0)}M</div></div>', unsafe_allow_html=True)
+        k3.markdown(f'<div class="metric-card"><div class="metric-label">Amortization YTD</div><div class="metric-value">{data.get("amortization_ytd", 0)}%</div></div>', unsafe_allow_html=True)
+        k4.markdown(f'<div class="metric-card"><div class="metric-label">12M Net Rating Actions</div><div class="metric-value">{data.get("rating_actions_net", "+0")}</div></div>', unsafe_allow_html=True)
+        k5.markdown(f'<div class="metric-card"><div class="metric-label">Initial Par</div><div class="metric-value">${data.get("initial_collateral_size", data.get("current_portfolio_size", 0))}M</div></div>', unsafe_allow_html=True)
+
+        # Refinancing Assessment Highlight Box
+        if data.get("refinancing_window") or data.get("annual_interest_savings"):
+            st.markdown("<div style='margin-top: 16px;'></div>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="refi-card">
+                <h4 style="margin: 0 0 8px 0; color: #1A237E;">🔄 Refinancing & Restructure Opportunity Analysis</h4>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 8px;">
+                    <div><strong>Target Window:</strong><br/>{data.get('refinancing_window', 'N/A')}</div>
+                    <div><strong>Expected Refi Costs:</strong><br/>{data.get('expected_refi_costs', 'N/A')}</div>
+                    <div><strong>Annual Interest Savings:</strong><br/>{data.get('annual_interest_savings', 'N/A')}</div>
+                    <div><strong>Spread Environment:</strong><br/>{data.get('spread_environment', 'N/A')}</div>
+                </div>
+                <div style="margin-top: 10px; font-size: 13px; color: #37474F;">
+                    <strong>Manager Intention:</strong> {data.get('manager_intention', 'N/A')}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
         st.markdown("---")
 
@@ -374,52 +470,55 @@ with main_tabs[1]:
         with col_chart1:
             st.markdown("#### 🏢 Industry Sector Breakdown")
             sectors = data.get("sector_breakdown", {})
-            if sectors and HAS_PLOTLY:
-                # Clean up sector percentages for donut chart
+            if sectors:
                 sector_names = list(sectors.keys())
                 sector_vals = []
                 for v in sectors.values():
                     try:
-                        clean_v = float(str(v).replace("%", "").split("(")[0].strip())
+                        clean_v = float(re.sub(r"[^\d\.]", "", str(v).split("(")[0]))
                     except ValueError:
                         clean_v = 10.0
                     sector_vals.append(clean_v)
 
-                fig_sec = px.pie(
-                    names=sector_names,
-                    values=sector_vals,
-                    hole=0.4,
-                    color_discrete_sequence=px.colors.sequential.Blues_r
-                )
-                fig_sec.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=300)
-                st.plotly_chart(fig_sec, use_container_width=True)
-            elif sectors:
-                st.json(sectors)
+                if HAS_PLOTLY:
+                    fig_sec = px.pie(
+                        names=sector_names,
+                        values=sector_vals,
+                        hole=0.4,
+                        color_discrete_sequence=px.colors.sequential.Blues_r
+                    )
+                    fig_sec.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=300)
+                    st.plotly_chart(fig_sec, use_container_width=True)
+                else:
+                    sec_df = pd.DataFrame({"Sector": sector_names, "Allocation (%)": sector_vals})
+                    st.bar_chart(sec_df.set_index("Sector"))
 
         with col_chart2:
             st.markdown("#### 📊 Credit Quality Distribution")
             cq = data.get("credit_quality", {})
-            if cq and HAS_PLOTLY:
+            if cq:
                 cq_names = list(cq.keys())
                 cq_vals = []
                 for v in cq.values():
                     try:
-                        clean_v = float(str(v).replace("%", "").split("(")[0].strip())
+                        clean_v = float(re.sub(r"[^\d\.]", "", str(v).split("(")[0]))
                     except ValueError:
                         clean_v = 5.0
                     cq_vals.append(clean_v)
 
-                fig_cq = px.bar(
-                    x=cq_names,
-                    y=cq_vals,
-                    labels={"x": "Rating Bucket", "y": "Allocation (%)"},
-                    color=cq_vals,
-                    color_continuous_scale="Blues"
-                )
-                fig_cq.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=300)
-                st.plotly_chart(fig_cq, use_container_width=True)
-            elif cq:
-                st.json(cq)
+                if HAS_PLOTLY:
+                    fig_cq = px.bar(
+                        x=cq_names,
+                        y=cq_vals,
+                        labels={"x": "Rating Bucket", "y": "Allocation (%)"},
+                        color=cq_vals,
+                        color_continuous_scale="Blues"
+                    )
+                    fig_cq.update_layout(margin=dict(t=20, b=20, l=20, r=20), height=300)
+                    st.plotly_chart(fig_cq, use_container_width=True)
+                else:
+                    cq_df = pd.DataFrame({"Rating": cq_names, "Allocation (%)": cq_vals})
+                    st.bar_chart(cq_df.set_index("Rating"))
 
         st.markdown("---")
 
@@ -427,19 +526,28 @@ with main_tabs[1]:
         st.markdown("#### 📑 Debt & Equity Tranche Waterfall")
         notes = data.get("class_notes", [])
         if notes:
-            st.dataframe(notes, use_container_width=True)
+            st.dataframe(pd.DataFrame(notes), use_container_width=True)
 
         col_cov, col_evt = st.columns(2)
         with col_cov:
-            st.markdown("#### ⚖️ Covenant Compliance")
+            st.markdown("#### ⚖️ Covenant Compliance Matrix")
             covs = data.get("covenants", {})
-            for k, v in covs.items():
-                st.markdown(f"- **{k}:** `{v}`")
+            if covs:
+                for k, v in covs.items():
+                    is_breached = "breach" in str(v).lower() or "fail" in str(v).lower()
+                    css_cls = "covenant-breach" if is_breached else "covenant-pass"
+                    st.markdown(f'<div class="{css_cls}"><strong>{k}:</strong> {v}</div>', unsafe_allow_html=True)
+            else:
+                st.write(f"Status: `{data.get('compliance_status', 'Compliant')}`")
+
         with col_evt:
-            st.markdown("#### ⚠️ Major Credit Events")
+            st.markdown("#### ⚠️ Major Credit Events & Watchlist")
             evts = data.get("major_credit_events", [])
-            for e in evts:
-                st.write(f"- {e}")
+            if evts:
+                for e in evts:
+                    st.markdown(f"- {e}")
+            else:
+                st.write("No adverse credit events reported in current period.")
 
         # Download Actions
         st.markdown("---")
@@ -449,7 +557,7 @@ with main_tabs[1]:
             st.download_button(
                 "⬇️ Download Structured JSON Data",
                 data=json_bytes,
-                file_name="clo_extraction.json",
+                file_name=f"clo_{data.get('fund_name', 'deal').replace(' ', '_')}.json",
                 mime="application/json",
                 use_container_width=True
             )
@@ -459,7 +567,7 @@ with main_tabs[1]:
                 st.download_button(
                     "⬇️ Download Multi-Sheet Excel Workbook (.xlsx)",
                     data=excel_buf.getvalue(),
-                    file_name="clo_extraction.xlsx",
+                    file_name=f"clo_{data.get('fund_name', 'deal').replace(' ', '_')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     use_container_width=True
                 )
@@ -473,27 +581,43 @@ with main_tabs[2]:
         st.info("💡 Please extract a memo first in 'Upload & Preset Hub' to edit metrics.")
     else:
         st.subheader("✍️ Analyst Data Audit & Override Grid")
-        st.write("Audit and adjust extracted parameters before generating final committee reports.")
+        st.write("Review, modify, or insert manual overrides to ensure committee-ready accuracy.")
 
         with st.form("metric_editor_form"):
-            col_e1, col_e2, col_e3 = st.columns(3)
+            st.markdown("##### 1. Deal Overview & Identifiers")
+            col_e1, col_e2, col_e3, col_e4 = st.columns(4)
             with col_e1:
                 fund_name_edit = st.text_input("Fund Name", value=str(data.get("fund_name", "")))
+            with col_e2:
                 manager_edit = st.text_input("Portfolio Manager", value=str(data.get("portfolio_manager", "")))
+            with col_e3:
                 trustee_edit = st.text_input("Trustee", value=str(data.get("trustee", "")))
+            with col_e4:
                 report_date_edit = st.text_input("Report Date", value=str(data.get("report_date", "")))
 
-            with col_e2:
+            st.markdown("##### 2. Portfolio Composition & Credit Risk")
+            col_k1, col_k2, col_k3, col_k4 = st.columns(4)
+            with col_k1:
                 size_edit = st.number_input("Portfolio Size ($M)", value=float(data.get("current_portfolio_size", 0.0)))
-                loans_edit = st.number_input("Total Loans Count", value=int(data.get("total_loans", 0)))
                 wac_edit = st.number_input("WAC (%)", value=float(data.get("wac", 0.0)))
+            with col_k2:
+                loans_edit = st.number_input("Total Loans Count", value=int(data.get("total_loans", 0)))
                 wal_edit = st.number_input("WAL (years)", value=float(data.get("wal", 0.0)))
-
-            with col_e3:
+            with col_k3:
                 def_rate_edit = st.number_input("Cumulative Default Rate (%)", value=float(data.get("cumulative_default_rate", 0.0)))
-                dpd30_edit = st.number_input("30+ DPD ($M)", value=float(data.get("30_plus_dpd", 0.0)))
                 rating_edit = st.text_input("Weighted Avg Rating", value=str(data.get("weighted_avg_rating", "")))
-                refi_window_edit = st.text_input("Refinancing Window", value=str(data.get("refinancing_window", "")))
+            with col_k4:
+                dpd30_edit = st.number_input("30+ DPD ($M)", value=float(data.get("30_plus_dpd", 0.0)))
+                dpd60_edit = st.number_input("60+ DPD ($M)", value=float(data.get("60_plus_dpd", 0.0)))
+
+            st.markdown("##### 3. Refinancing & Restructure Parameters")
+            col_r1, col_r2, col_r3 = st.columns(3)
+            with col_r1:
+                refi_win_edit = st.text_input("Refinancing Window", value=str(data.get("refinancing_window", "")))
+            with col_r2:
+                refi_cost_edit = st.text_input("Expected Refi Costs", value=str(data.get("expected_refi_costs", "")))
+            with col_r3:
+                savings_edit = st.text_input("Annual Interest Savings", value=str(data.get("annual_interest_savings", "")))
 
             comp_status_edit = st.text_input("Compliance Status", value=str(data.get("compliance_status", "")))
 
@@ -509,9 +633,12 @@ with main_tabs[2]:
                 data["wac"] = wac_edit
                 data["wal"] = wal_edit
                 data["cumulative_default_rate"] = def_rate_edit
-                data["30_plus_dpd"] = dpd30_edit
                 data["weighted_avg_rating"] = rating_edit
-                data["refinancing_window"] = refi_window_edit
+                data["30_plus_dpd"] = dpd30_edit
+                data["60_plus_dpd"] = dpd60_edit
+                data["refinancing_window"] = refi_win_edit
+                data["expected_refi_costs"] = refi_cost_edit
+                data["annual_interest_savings"] = savings_edit
                 data["compliance_status"] = comp_status_edit
 
                 st.session_state["extracted_data"] = data
@@ -526,7 +653,7 @@ with main_tabs[3]:
         st.info("💡 Please extract a memo first in 'Upload & Preset Hub' to use Committee Studio.")
     else:
         st.subheader("🏛️ CLO Investment & Surveillance Committee Studio")
-        st.write("Format executive committee briefs, refinancing proposals, and action item lists.")
+        st.write("Generate executive committee memorandum packages, refinancing proposals, and formal sign-off documents.")
 
         col_st1, col_st2 = st.columns(2)
         with col_st1:
@@ -579,7 +706,7 @@ with main_tabs[3]:
 
         if "committee_md_out" in st.session_state:
             st.markdown("---")
-            st.subheader("📋 Executive Committee Memorandum Preview")
+            st.subheader("📋 Executive Committee Memorandum Package")
 
             c_exp1, c_exp2, c_exp3 = st.columns(3)
             with c_exp1:
@@ -613,41 +740,39 @@ with main_tabs[3]:
 # Tab 5: Batch & Deal Compare
 # ----------------------------------------------------------------------------
 with main_tabs[4]:
-    st.subheader("🔍 Portfolio Deal Comparison Workspace")
-    st.write("Compare metrics between sample surveillance and refinancing reports side by side.")
+    st.subheader("🔍 Multi-Deal & Surveillance Comparison Workspace")
+    st.write("Compare key financial metrics and variance deltas side by side across multiple reports.")
 
-    if st.button("⚡ Run Preset Side-by-Side Comparison"):
+    col_cmp1, col_cmp2 = st.columns(2)
+    with col_cmp1:
+        st.markdown("##### Deal A: Surveillance Memo (Apex Fund IV)")
+    with col_cmp2:
+        st.markdown("##### Deal B: Refinancing Memo (Horizon Fund II)")
+
+    if st.button("⚡ Run Side-by-Side Deal Comparison", type="primary", use_container_width=True):
         if os.path.exists("sample_clo_memo.txt") and os.path.exists("sample_refi_memo.txt"):
-            from offline_extractor import OfflineCLOExtractor
             ext = OfflineCLOExtractor()
-
             with open("sample_clo_memo.txt", "r", encoding="utf-8") as f:
                 d1 = ext.extract(f.read())
             with open("sample_refi_memo.txt", "r", encoding="utf-8") as f:
                 d2 = ext.extract(f.read())
 
-            col_deal1, col_deal2 = st.columns(2)
+            # Comparative Metrics Table
+            comparison_rows = [
+                {"Metric": "Deal Name", "Deal A (Surveillance)": d1.get("fund_name"), "Deal B (Refinancing)": d2.get("fund_name"), "Variance / Delta": "Cross-Deal"},
+                {"Metric": "Portfolio Manager", "Deal A (Surveillance)": d1.get("portfolio_manager"), "Deal B (Refinancing)": d2.get("portfolio_manager"), "Variance / Delta": "-"},
+                {"Metric": "Portfolio Size ($M)", "Deal A (Surveillance)": f"${d1.get('current_portfolio_size')}M", "Deal B (Refinancing)": f"${d2.get('current_portfolio_size')}M", "Variance / Delta": f"-${round(d1.get('current_portfolio_size', 0) - d2.get('current_portfolio_size', 0), 2)}M"},
+                {"Metric": "Total Loans", "Deal A (Surveillance)": d1.get("total_loans"), "Deal B (Refinancing)": d2.get("total_loans"), "Variance / Delta": f"{d2.get('total_loans', 0) - d1.get('total_loans', 0)} loans"},
+                {"Metric": "WAC (%)", "Deal A (Surveillance)": f"{d1.get('wac')}%", "Deal B (Refinancing)": f"{d2.get('wac')}%", "Variance / Delta": f"+{round(d2.get('wac', 0) - d1.get('wac', 0), 2)}%"},
+                {"Metric": "WAL (years)", "Deal A (Surveillance)": f"{d1.get('wal')} yrs", "Deal B (Refinancing)": f"{d2.get('wal')} yrs", "Variance / Delta": f"{round(d2.get('wal', 0) - d1.get('wal', 0), 2)} yrs"},
+                {"Metric": "Weighted Avg Rating", "Deal A (Surveillance)": d1.get("weighted_avg_rating"), "Deal B (Refinancing)": d2.get("weighted_avg_rating"), "Variance / Delta": "Rating Variance"},
+                {"Metric": "Cumulative Default Rate", "Deal A (Surveillance)": f"{d1.get('cumulative_default_rate')}%", "Deal B (Refinancing)": f"{d2.get('cumulative_default_rate')}%", "Variance / Delta": f"-{round(d1.get('cumulative_default_rate', 0) - d2.get('cumulative_default_rate', 0), 2)}%"},
+                {"Metric": "Refinancing Target", "Deal A (Surveillance)": d1.get("refinancing_window"), "Deal B (Refinancing)": d2.get("refinancing_window"), "Variance / Delta": "-"},
+                {"Metric": "Annual Interest Savings", "Deal A (Surveillance)": "N/A", "Deal B (Refinancing)": d2.get("annual_interest_savings"), "Variance / Delta": d2.get("annual_interest_savings")},
+                {"Metric": "Compliance Status", "Deal A (Surveillance)": d1.get("compliance_status"), "Deal B (Refinancing)": d2.get("compliance_status"), "Variance / Delta": "Both Compliant"},
+            ]
 
-            with col_deal1:
-                st.markdown(f"#### 📄 {d1.get('fund_name')}")
-                st.json({
-                    "Portfolio Size ($M)": d1.get("current_portfolio_size"),
-                    "Total Loans": d1.get("total_loans"),
-                    "WAC": f"{d1.get('wac')}%",
-                    "WAL": f"{d1.get('wal')} yrs",
-                    "Default Rate": f"{d1.get('cumulative_default_rate')}%",
-                    "Compliance": d1.get("compliance_status")
-                })
-
-            with col_deal2:
-                st.markdown(f"#### 📄 {d2.get('fund_name')}")
-                st.json({
-                    "Portfolio Size ($M)": d2.get("current_portfolio_size"),
-                    "Total Loans": d2.get("total_loans"),
-                    "WAC": f"{d2.get('wac')}%",
-                    "WAL": f"{d2.get('wal')} yrs",
-                    "Default Rate": f"{d2.get('cumulative_default_rate')}%",
-                    "Compliance": d2.get("compliance_status")
-                })
+            cmp_df = pd.DataFrame(comparison_rows)
+            st.dataframe(cmp_df, use_container_width=True)
         else:
             st.warning("Sample memo files not found.")

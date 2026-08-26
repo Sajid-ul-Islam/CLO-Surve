@@ -116,22 +116,32 @@ REQUIRED FIELDS (extract exactly these):
   "fund_name": "string",
   "trustee": "string",
   "report_date": "YYYY-MM-DD",
+  "reporting_period": "string",
   "portfolio_manager": "string",
   "closing_date": "YYYY-MM-DD",
+  "initial_collateral_size": "number (in millions)",
   "current_portfolio_size": "number (in millions)",
   "total_loans": "number",
   "wac": "number (weighted average coupon, %)",
   "wal": "number (weighted average life, years)",
   "weighted_avg_rating": "string",
   "cumulative_default_rate": "number (%)",
+  "cumulative_loan_defaults_par": "number ($ millions)",
   "30_plus_dpd": "number ($ millions)",
   "60_plus_dpd": "number ($ millions)",
   "total_defaulted_loans": "number",
+  "loans_paid_off": "number",
   "amortization_ytd": "number (%)",
   "loans_upgraded_12m": "number",
   "loans_downgraded_12m": "number",
+  "rating_actions_net": "string",
+  "spread_environment": "string",
+  "refinancing_window": "string or date",
+  "expected_refi_costs": "string or number",
+  "manager_intention": "string",
+  "annual_interest_savings": "string or number",
   "sector_breakdown": {{
-    "sector_name": "percentage"
+    "sector_name": "percentage or amount"
   }},
   "credit_quality": {{
     "rating_bucket": "percentage or $ amount"
@@ -139,6 +149,7 @@ REQUIRED FIELDS (extract exactly these):
   "class_notes": [
     {{
       "class": "string (A-1, A-2, B, C, etc.)",
+      "description": "full class title",
       "coupon": "string",
       "balance": "number ($ millions)",
       "rating": "string",
@@ -151,7 +162,6 @@ REQUIRED FIELDS (extract exactly these):
   "major_credit_events": [
     "event description"
   ],
-  "refinancing_window": "string or date",
   "compliance_status": "string (all covenants compliant or list any breaches)"
 }}
 
@@ -237,59 +247,87 @@ Return ONLY the JSON object, no other text."""
             summary_data = {
                 'Metric': [
                     'Fund Name', 'Trustee', 'Portfolio Manager', 'Report Date',
-                    'Closing Date', 'Portfolio Size ($M)', 'Total Loans', 'WAC (%)',
+                    'Reporting Period', 'Closing Date', 'Initial Collateral ($M)',
+                    'Current Portfolio Size ($M)', 'Total Loans', 'WAC (%)',
                     'WAL (years)', 'Weighted Avg Rating', 'Cumulative Default Rate (%)',
-                    '30+ DPD ($M)', '60+ DPD ($M)', 'Compliance Status'
+                    'Cumulative Default Par ($M)', '30+ DPD ($M)', '60+ DPD ($M)',
+                    'Defaulted Loans Count', 'Loans Paid Off', 'Amortization YTD (%)',
+                    '12M Upgrades', '12M Downgrades', 'Compliance Status'
                 ],
                 'Value': [
                     data.get('fund_name', 'N/A'),
                     data.get('trustee', 'N/A'),
                     data.get('portfolio_manager', 'N/A'),
                     data.get('report_date', 'N/A'),
+                    data.get('reporting_period', 'N/A'),
                     data.get('closing_date', 'N/A'),
+                    data.get('initial_collateral_size', 'N/A'),
                     data.get('current_portfolio_size', 'N/A'),
                     data.get('total_loans', 'N/A'),
                     data.get('wac', 'N/A'),
                     data.get('wal', 'N/A'),
                     data.get('weighted_avg_rating', 'N/A'),
                     data.get('cumulative_default_rate', 'N/A'),
+                    data.get('cumulative_loan_defaults_par', 'N/A'),
                     data.get('30_plus_dpd', 'N/A'),
                     data.get('60_plus_dpd', 'N/A'),
+                    data.get('total_defaulted_loans', 'N/A'),
+                    data.get('loans_paid_off', 'N/A'),
+                    data.get('amortization_ytd', 'N/A'),
+                    data.get('loans_upgraded_12m', 'N/A'),
+                    data.get('loans_downgraded_12m', 'N/A'),
                     data.get('compliance_status', 'N/A')
                 ]
             }
             pd.DataFrame(summary_data).to_excel(writer, sheet_name='Summary', index=False)
 
-            # Sheet 2: Sector Breakdown
+            # Sheet 2: Capital Structure
+            if data.get('class_notes'):
+                classes_df = pd.DataFrame(data['class_notes'])
+                classes_df.to_excel(writer, sheet_name='Capital Structure', index=False)
+
+            # Sheet 3: Refinancing & Restructure
+            refi_data = {
+                'Parameter': [
+                    'Refinancing Target Window', 'Expected Refinancing Costs',
+                    'Estimated Annual Interest Savings', 'Market Spread Environment',
+                    'Manager Intention & Strategy'
+                ],
+                'Details': [
+                    data.get('refinancing_window', 'N/A'),
+                    data.get('expected_refi_costs', 'N/A'),
+                    data.get('annual_interest_savings', 'N/A'),
+                    data.get('spread_environment', 'N/A'),
+                    data.get('manager_intention', 'N/A')
+                ]
+            }
+            pd.DataFrame(refi_data).to_excel(writer, sheet_name='Refinancing Analysis', index=False)
+
+            # Sheet 4: Sector Breakdown
             if data.get('sector_breakdown'):
                 sector_data = pd.DataFrame([
-                    {'Sector': k, 'Allocation (%)': v}
+                    {'Sector': k, 'Allocation': v}
                     for k, v in data['sector_breakdown'].items()
                 ])
                 sector_data.to_excel(writer, sheet_name='Sectors', index=False)
 
-            # Sheet 3: Credit Quality
+            # Sheet 5: Credit Quality
             if data.get('credit_quality'):
                 quality_data = pd.DataFrame([
-                    {'Rating': k, 'Amount (%)': v}
+                    {'Rating': k, 'Allocation': v}
                     for k, v in data['credit_quality'].items()
                 ])
                 quality_data.to_excel(writer, sheet_name='Credit Quality', index=False)
 
-            # Sheet 4: Class Notes
-            if data.get('class_notes'):
-                classes_df = pd.DataFrame(data['class_notes'])
-                classes_df.to_excel(writer, sheet_name='Class Notes', index=False)
-
-            # Sheet 5: Covenants
+            # Sheet 6: Covenants
             if data.get('covenants'):
                 covenant_data = pd.DataFrame([
-                    {'Covenant': k, 'Status': v}
+                    {'Covenant': k, 'Status & Requirement': v}
                     for k, v in data['covenants'].items()
                 ])
                 covenant_data.to_excel(writer, sheet_name='Covenants', index=False)
 
-            # Sheet 6: Credit Events
+            # Sheet 7: Credit Events
             if data.get('major_credit_events'):
                 events_data = pd.DataFrame({
                     'Event': data['major_credit_events']
