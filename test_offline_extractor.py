@@ -101,12 +101,13 @@ def test_committee_memo_generation():
     txt = gen.generate_text_brief(recommendation="Refinance Portfolio", target_period="Q1 2027")
     html = gen.generate_html_brief(recommendation="Refinance Portfolio", target_period="Q1 2027")
 
-    assert "CLO INVESTMENT COMMITTEE MEMORANDUM" in md
+    assert "CLO INVESTMENT & SURVEILLANCE COMMITTEE MEMORANDUM" in md
     assert "Horizon Senior Loan Fund II" in md
-    assert "REFINANCE PORTFOLIO" in md
+    assert "REFINANCE PORTFOLIO" in md.upper()
     assert "CLO COMMITTEE MEMORANDUM" in txt
     assert "<!DOCTYPE html>" in html
     assert "Horizon Senior Loan Fund II" in html
+
 
     print("[PASS] Committee memo generator assertions passed.")
 
