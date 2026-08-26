@@ -1,0 +1,162 @@
+[
+  {
+    "deal_id": "CLO-001",
+    "deal_name": "Apex Senior Loan Fund IV",
+    "analyst": "Sajid",
+    "manager": "Blackstone Credit",
+    "close_date": "2021-03-15",
+    "docs": {
+      "Indenture": {
+        "status": "Pending Upload",
+        "url": "",
+        "local_path": ""
+      },
+      "Offering Memorandum": {
+        "status": "Pending Upload",
+        "url": "",
+        "local_path": ""
+      },
+      "Trustee Report": {
+        "status": "Uploaded",
+        "url": "",
+        "local_path": ""
+      },
+      "Surveillance / Quarterly Report": {
+        "status": "Pending Upload",
+        "url": "",
+        "local_path": ""
+      },
+      "Refinancing Memo": {
+        "status": "Not Required",
+        "url": "",
+        "local_path": ""
+      },
+      "Rating Agency Letter": {
+        "status": "Pending Upload",
+        "url": "",
+        "local_path": ""
+      }
+    },
+    "notes": "Q3 surveillance due. Indenture amendment pending."
+  },
+  {
+    "deal_id": "CLO-002",
+    "deal_name": "Horizon Senior Loan Fund II",
+    "analyst": "Sajid",
+    "manager": "Carlyle Structured Credit",
+    "close_date": "2020-07-22",
+    "docs": {
+      "Indenture": {
+        "status": "Uploaded",
+        "url": "",
+        "local_path": ""
+      },
+      "Offering Memorandum": {
+        "status": "Uploaded",
+        "url": "",
+        "local_path": ""
+      },
+      "Trustee Report": {
+        "status": "Pending Upload",
+        "url": "",
+        "local_path": ""
+      },
+      "Surveillance / Quarterly Report": {
+        "status": "Not Required",
+        "url": "",
+        "local_path": ""
+      },
+      "Refinancing Memo": {
+        "status": "Pending Upload",
+        "url": "",
+        "local_path": ""
+      },
+      "Rating Agency Letter": {
+        "status": "Uploaded",
+        "url": "",
+        "local_path": ""
+      }
+    },
+    "notes": "Refinancing memo download required before committee."
+  },
+  {
+    "deal_id": "CLO-003",
+    "deal_name": "Meridian Corporate Loan Trust III",
+    "analyst": "Ahmed",
+    "manager": "Ares Management",
+    "close_date": "2022-01-10",
+    "docs": {
+      "Indenture": {
+        "status": "Uploaded",
+        "url": "",
+        "local_path": ""
+      },
+      "Offering Memorandum": {
+        "status": "Uploaded",
+        "url": "",
+        "local_path": ""
+      },
+      "Trustee Report": {
+        "status": "Uploaded",
+        "url": "",
+        "local_path": ""
+      },
+      "Surveillance / Quarterly Report": {
+        "status": "Uploaded",
+        "url": "",
+        "local_path": ""
+      },
+      "Refinancing Memo": {
+        "status": "Not Required",
+        "url": "",
+        "local_path": ""
+      },
+      "Rating Agency Letter": {
+        "status": "Uploaded",
+        "url": "",
+        "local_path": ""
+      }
+    },
+    "notes": "All docs current."
+  },
+  {
+    "deal_id": "CLO-004",
+    "deal_name": "Pinnacle Leveraged Loan Fund I",
+    "analyst": "Sara",
+    "manager": "Apollo Global Management",
+    "close_date": "2019-11-05",
+    "docs": {
+      "Indenture": {
+        "status": "Pending Upload",
+        "url": "",
+        "local_path": ""
+      },
+      "Offering Memorandum": {
+        "status": "Failed",
+        "url": "",
+        "local_path": ""
+      },
+      "Trustee Report": {
+        "status": "Pending Upload",
+        "url": "",
+        "local_path": ""
+      },
+      "Surveillance / Quarterly Report": {
+        "status": "Pending Upload",
+        "url": "",
+        "local_path": ""
+      },
+      "Refinancing Memo": {
+        "status": "Not Required",
+        "url": "",
+        "local_path": ""
+      },
+      "Rating Agency Letter": {
+        "status": "Not Required",
+        "url": "",
+        "local_path": ""
+      }
+    },
+    "notes": "Offering memo download failed \u2014 check portal credentials."
+  }
+]
