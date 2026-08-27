@@ -161,12 +161,54 @@ else:
     st.sidebar.info("⚡ Running in 100% Offline Rule-Based Mode. Zero API calls or keys required.")
 
 # ----------------------------------------------------------------------------
-# Session State Initialization
+# Session State Initialization & Helper Functions
 # ----------------------------------------------------------------------------
 if "extracted_data" not in st.session_state:
     st.session_state["extracted_data"] = None
 if "memo_text" not in st.session_state:
     st.session_state["memo_text"] = ""
+
+
+def _build_excel_buffer(data: dict):
+    try:
+        import pandas as pd
+        buf = io.BytesIO()
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+            summary = pd.DataFrame({
+                'Metric': ['Fund Name', 'Trustee', 'Portfolio Manager', 'Report Date',
+                           'Closing Date', 'Portfolio Size ($M)', 'Total Loans', 'WAC (%)',
+                           'WAL (years)', 'Weighted Avg Rating', 'Cumulative Default Rate (%)',
+                           '30+ DPD ($M)', '60+ DPD ($M)', 'Compliance Status'],
+                'Value': [data.get('fund_name', 'N/A'), data.get('trustee', 'N/A'),
+                          data.get('portfolio_manager', 'N/A'), data.get('report_date', 'N/A'),
+                          data.get('closing_date', 'N/A'), data.get('current_portfolio_size', 'N/A'),
+                          data.get('total_loans', 'N/A'), data.get('wac', 'N/A'),
+                          data.get('wal', 'N/A'), data.get('weighted_avg_rating', 'N/A'),
+                          data.get('cumulative_default_rate', 'N/A'), data.get('30_plus_dpd', 'N/A'),
+                          data.get('60_plus_dpd', 'N/A'), data.get('compliance_status', 'N/A')],
+            })
+            summary.to_excel(writer, sheet_name='Summary', index=False)
+            if data.get('sector_breakdown'):
+                pd.DataFrame([{'Sector': k, 'Allocation (%)': v}
+                              for k, v in data['sector_breakdown'].items()]
+                             ).to_excel(writer, sheet_name='Sectors', index=False)
+            if data.get('credit_quality'):
+                pd.DataFrame([{'Rating': k, 'Amount (%)': v}
+                              for k, v in data['credit_quality'].items()]
+                             ).to_excel(writer, sheet_name='Credit Quality', index=False)
+            if data.get('class_notes'):
+                pd.DataFrame(data['class_notes']).to_excel(writer, sheet_name='Class Notes', index=False)
+            if data.get('covenants'):
+                pd.DataFrame([{'Covenant': k, 'Status': v}
+                              for k, v in data['covenants'].items()]
+                             ).to_excel(writer, sheet_name='Covenants', index=False)
+            if data.get('major_credit_events'):
+                pd.DataFrame({'Event': data['major_credit_events']}
+                             ).to_excel(writer, sheet_name='Credit Events', index=False)
+        return buf
+    except Exception as e:
+        st.warning(f"Excel build warning: {e}")
+        return None
 
 # ----------------------------------------------------------------------------
 # Hero Banner Header
@@ -609,48 +651,3 @@ with main_tabs[4]:
                 })
         else:
             st.warning("Sample memo files not found.")
-
-
-# ----------------------------------------------------------------------------
-# Helper: Excel Builder
-# ----------------------------------------------------------------------------
-def _build_excel_buffer(data: dict):
-    try:
-        import pandas as pd
-        buf = io.BytesIO()
-        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
-            summary = pd.DataFrame({
-                'Metric': ['Fund Name', 'Trustee', 'Portfolio Manager', 'Report Date',
-                           'Closing Date', 'Portfolio Size ($M)', 'Total Loans', 'WAC (%)',
-                           'WAL (years)', 'Weighted Avg Rating', 'Cumulative Default Rate (%)',
-                           '30+ DPD ($M)', '60+ DPD ($M)', 'Compliance Status'],
-                'Value': [data.get('fund_name', 'N/A'), data.get('trustee', 'N/A'),
-                          data.get('portfolio_manager', 'N/A'), data.get('report_date', 'N/A'),
-                          data.get('closing_date', 'N/A'), data.get('current_portfolio_size', 'N/A'),
-                          data.get('total_loans', 'N/A'), data.get('wac', 'N/A'),
-                          data.get('wal', 'N/A'), data.get('weighted_avg_rating', 'N/A'),
-                          data.get('cumulative_default_rate', 'N/A'), data.get('30_plus_dpd', 'N/A'),
-                          data.get('60_plus_dpd', 'N/A'), data.get('compliance_status', 'N/A')],
-            })
-            summary.to_excel(writer, sheet_name='Summary', index=False)
-            if data.get('sector_breakdown'):
-                pd.DataFrame([{'Sector': k, 'Allocation (%)': v}
-                              for k, v in data['sector_breakdown'].items()]
-                             ).to_excel(writer, sheet_name='Sectors', index=False)
-            if data.get('credit_quality'):
-                pd.DataFrame([{'Rating': k, 'Amount (%)': v}
-                              for k, v in data['credit_quality'].items()]
-                             ).to_excel(writer, sheet_name='Credit Quality', index=False)
-            if data.get('class_notes'):
-                pd.DataFrame(data['class_notes']).to_excel(writer, sheet_name='Class Notes', index=False)
-            if data.get('covenants'):
-                pd.DataFrame([{'Covenant': k, 'Status': v}
-                              for k, v in data['covenants'].items()]
-                             ).to_excel(writer, sheet_name='Covenants', index=False)
-            if data.get('major_credit_events'):
-                pd.DataFrame({'Event': data['major_credit_events']}
-                             ).to_excel(writer, sheet_name='Credit Events', index=False)
-        return buf
-    except Exception as e:
-        st.warning(f"Excel build warning: {e}")
-        return None
