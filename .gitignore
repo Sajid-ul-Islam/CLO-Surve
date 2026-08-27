@@ -1,0 +1,25 @@
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python cache / build artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Generated extraction outputs
+clo_extraction.json
+clo_extraction.xlsx
+*.xlsx
+*.log
+
+# Secrets / credentials
+.env
+.env.*
+*.key
+
+# Streamlit
+.streamlit/secrets.toml
