@@ -9,8 +9,14 @@ Default model: stealth/ox-alpha
 
 import json
 import os
+import sys
 from datetime import datetime
 from openai import OpenAI
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
+from offline_extractor import OfflineCLOExtractor
 
 # Try to import pandas and openpyxl for Excel output (optional)
 try:
@@ -18,7 +24,7 @@ try:
     HAS_PANDAS = True
 except ImportError:
     HAS_PANDAS = False
-    print("⚠️  pandas not found. JSON output only. Install: pip install pandas openpyxl")
+    print("[WARNING] pandas not found. JSON output only. Install: pip install pandas openpyxl")
 
 
 # Provider registry: each entry maps to (env_var, default_model, base_url)
@@ -38,6 +44,11 @@ PROVIDERS = {
         "default_model": "qwen/qwen3.8-27b",
         "base_url": "https://api.groq.com/openai/v1",
     },
+    "offline": {
+        "env": None,
+        "default_model": "rule-based-engine",
+        "base_url": None,
+    },
 }
 
 
@@ -48,10 +59,11 @@ class CLOExtractor:
         model: str = None,
         provider: str = "openrouter",
         base_url: str = None,
+        allow_fallback: bool = True,
     ):
         """
-        Initialize an OpenAI-compatible client for the chosen provider.
-        provider: 'openrouter' | 'gemini' | 'groq'
+        Initialize extractor client for chosen provider.
+        provider: 'openrouter' | 'gemini' | 'groq' | 'offline'
         """
         if provider not in PROVIDERS:
             raise ValueError(
@@ -59,16 +71,27 @@ class CLOExtractor:
             )
         cfg = PROVIDERS[provider]
         self.provider = provider
-        # api_key may be passed directly; otherwise fall back to the provider env var
-        self.api_key = api_key or os.getenv(cfg["env"])
-        if not self.api_key:
-            raise ValueError(
-                f"No API key found for provider '{provider}'. "
-                f"Set {cfg['env']} or pass api_key=..."
-            )
+        self.allow_fallback = allow_fallback
         self.model = model or cfg["default_model"]
         self.base_url = base_url or cfg["base_url"]
-        self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
+        self.client = None
+
+        if provider == "offline":
+            self.api_key = "OFFLINE_RULE_BASED"
+        else:
+            self.api_key = api_key or os.getenv(cfg["env"])
+            if not self.api_key:
+                if allow_fallback:
+                    print(f"[INFO] No API key found for '{provider}'. Falling back to offline rule-based engine.")
+                    self.provider = "offline"
+                    self.api_key = "OFFLINE_RULE_BASED"
+                else:
+                    raise ValueError(
+                        f"No API key found for provider '{provider}'. "
+                        f"Set {cfg['env']} or pass api_key=..."
+                    )
+            else:
+                self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
 
     def read_memo(self, file_path: str) -> str:
         """Read memo from file (txt, pdf text, etc.)"""
@@ -77,9 +100,12 @@ class CLOExtractor:
 
     def extract_data(self, memo_text: str) -> dict:
         """
-        Use the LLM to extract structured data from memo.
+        Extract structured data from memo using chosen provider or offline fallback.
         Returns a dict with all extracted fields.
         """
+        if self.provider == "offline" or not self.client:
+            print("[INFO] Running offline rule-based extraction engine...")
+            return OfflineCLOExtractor().extract(memo_text)
 
         extraction_prompt = f"""You are a financial analyst specializing in CLO (Collateralized Loan Obligation) analysis.
 
@@ -159,11 +185,24 @@ Return ONLY the JSON object, no other text."""
 
             # Try to parse as JSON (strip a possible ```json ... ``` fence)
             extracted_data = self._parse_json(response_text)
+            if extracted_data and isinstance(extracted_data, dict):
+                extracted_data["_metadata"] = {
+                    "engine": f"{self.provider}:{self.model}",
+                    "extracted_at": datetime.now().isoformat()
+                }
             return extracted_data
 
-        except json.JSONDecodeError as e:
-            print(f"❌ Failed to parse LLM response as JSON: {e}")
-            print(f"Raw response:\\n{response_text}")
+        except Exception as e:
+            print(f"[WARNING] LLM extraction failed ({self.provider}:{self.model}): {e}")
+            if self.allow_fallback:
+                print("[INFO] Falling back to offline rule-based extraction engine...")
+                fallback_data = OfflineCLOExtractor().extract(memo_text)
+                fallback_data["_metadata"] = {
+                    "engine": "rule_based_fallback",
+                    "error": str(e),
+                    "extracted_at": datetime.now().isoformat()
+                }
+                return fallback_data
             return None
 
     @staticmethod
@@ -184,12 +223,12 @@ Return ONLY the JSON object, no other text."""
         """Save extracted data to JSON file"""
         with open(output_path, 'w') as f:
             json.dump(data, f, indent=2)
-        print(f"✅ JSON saved: {output_path}")
+        print(f"[OK] JSON saved: {output_path}")
 
     def save_excel(self, data: dict, output_path: str):
         """Save extracted data to Excel workbook with multiple sheets"""
         if not HAS_PANDAS:
-            print("⚠️  Skipping Excel export (pandas not installed)")
+            print("[WARNING] Skipping Excel export (pandas not installed)")
             return
 
         with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
@@ -257,21 +296,21 @@ Return ONLY the JSON object, no other text."""
                 })
                 events_data.to_excel(writer, sheet_name='Credit Events', index=False)
 
-        print(f"✅ Excel saved: {output_path}")
+        print(f"[OK] Excel saved: {output_path}")
 
     def process_memo(self, memo_path: str, output_json: str = None, output_excel: str = None):
         """End-to-end: read memo → extract → save outputs"""
-        print(f"\n📄 Reading memo: {memo_path}")
+        print(f"\n[INFO] Reading memo: {memo_path}")
         memo_text = self.read_memo(memo_path)
 
-        print(f"🔍 Extracting data with [{self.provider}] {self.model}...")
+        print(f"[INFO] Extracting data with [{self.provider}] {self.model}...")
         extracted_data = self.extract_data(memo_text)
 
         if not extracted_data:
-            print("❌ Extraction failed")
+            print("[ERROR] Extraction failed")
             return None
 
-        print(f"✨ Extraction successful!")
+        print(f"[SUCCESS] Extraction successful!")
 
         if not output_json:
             output_json = "clo_extraction.json"
@@ -285,7 +324,7 @@ Return ONLY the JSON object, no other text."""
 
     def process_text(self, memo_text: str) -> dict:
         """Extract from an in-memory text string (used by the UI)."""
-        print(f"🔍 Extracting data with [{self.provider}] {self.model}...")
+        print(f"[INFO] Extracting data with [{self.provider}] {self.model}...")
         extracted_data = self.extract_data(memo_text)
         return extracted_data
 
@@ -296,7 +335,7 @@ def main():
     memo_file = "sample_clo_memo.txt"
 
     if not os.path.exists(memo_file):
-        print(f"❌ {memo_file} not found. Create it first.")
+        print(f"[ERROR] {memo_file} not found. Create it first.")
         return
 
     data = extractor.process_memo(

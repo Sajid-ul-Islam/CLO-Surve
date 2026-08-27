@@ -4,9 +4,12 @@ Extract structured data from CLO (Collateralized Loan Obligation) surveillance /
 refi memos using an LLM, with a Streamlit web UI.
 
 ## Features
-- Upload a memo (`.txt` / `.md` / `.pdf`), paste text, or paste a public link.
-- Pick a provider: **OpenRouter**, **Gemini**, or **Groq**.
-- Download results as JSON or Excel.
+- **Flexible Extraction Engines**:
+  - 🤖 **AI LLM Agent** (OpenRouter, Gemini, Groq) with automatic fallback.
+  - ⚡ **Standalone Offline Engine** (100% offline rule-based extraction; zero API keys required).
+- Upload a memo (`.txt` / `.md` / `.pdf`), paste text, or fetch via URL.
+- **CLO Committee Prep Studio**: Instantly generate executive CLO Committee Memorandums, refinancing briefs, and action item lists for investment committees.
+- Download results as JSON, Excel (`.xlsx`), Markdown (`.md`), or plain text (`.txt`).
 
 ## Local run
 ```bash
