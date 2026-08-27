@@ -149,12 +149,36 @@ engine_mode = st.sidebar.radio(
 is_offline = "Offline" in engine_mode
 
 if not is_offline:
-    provider = st.sidebar.selectbox(
+    provider_choice = st.sidebar.selectbox(
         "AI Provider",
-        ["openrouter", "gemini", "groq"],
+        ["Auto-Detect from Key", "openrouter", "gemini", "groq"],
         index=0,
-        help="OpenRouter (broad model selection), Gemini (Google), Groq (ultra fast inference)."
+        help="Auto-detect provider from your API key, or choose provider explicitly."
     )
+
+    typed_key = st.sidebar.text_input(
+        "🔑 API Key",
+        value="",
+        type="password",
+        placeholder="Paste your API key here...",
+        help="Paste your API key for Gemini, OpenRouter, or Groq. Best model is selected automatically!"
+    )
+
+    clean_key = typed_key.strip() if typed_key else ""
+    detected_provider = None
+    if clean_key:
+        if clean_key.startswith("AIza"):
+            detected_provider = "gemini"
+        elif clean_key.startswith("gsk_"):
+            detected_provider = "groq"
+        elif clean_key.startswith("sk-") or clean_key.startswith("sk-or-"):
+            detected_provider = "openrouter"
+
+    if provider_choice == "Auto-Detect from Key":
+        provider = detected_provider or "openrouter"
+    else:
+        provider = provider_choice
+
     ENV_FOR = {"openrouter": "OPENROUTER_API_KEY", "gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY"}
     DEFAULT_MODEL = {
         "openrouter": "z-ai/glm-5.3-flash",
@@ -168,16 +192,29 @@ if not is_offline:
         except Exception:
             return None
 
-    stored_key = _get_secret(ENV_FOR[provider]) or os.getenv(ENV_FOR[provider], "")
-    typed_key = st.sidebar.text_input(
-        f"{provider} API Key (optional override)",
-        value="",
-        type="password",
-        help=f"Leave blank to use key from {ENV_FOR[provider]} (secrets/env)"
-    )
-    api_key = typed_key or stored_key
-    model = st.sidebar.text_input("Model", value=os.getenv("CLO_MODEL", DEFAULT_MODEL[provider]))
+    stored_key = _get_secret(ENV_FOR.get(provider, "")) or os.getenv(ENV_FOR.get(provider, ""), "")
+    api_key = clean_key or stored_key
+
+    # Default model is chosen automatically for the user
+    model = DEFAULT_MODEL.get(provider, "z-ai/glm-5.3-flash")
+
+    # Optional model override expander for power users
+    with st.sidebar.expander("⚙️ Optional: Override Model Name"):
+        custom_model = st.text_input(
+            "Custom Model",
+            value="",
+            placeholder=f"Default: {model}",
+            help="Leave blank to use default model automatically."
+        )
+        if custom_model.strip():
+            model = custom_model.strip()
+
     allow_fallback = st.sidebar.checkbox("Auto Fallback to Offline Engine on API Error", value=True)
+
+    if api_key:
+        st.sidebar.caption(f"✅ Ready with provider **{provider.upper()}** (`{model}`).")
+    else:
+        st.sidebar.caption(f"💡 No key provided. Will auto-fallback to ⚡ Offline Engine if needed.")
 else:
     provider = "offline"
     api_key = "OFFLINE_RULE_BASED"
