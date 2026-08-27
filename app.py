@@ -27,17 +27,48 @@ st.set_page_config(
 st.sidebar.title("🏦 CLO Memo Extractor")
 st.sidebar.caption("Extract structured data from CLO surveillance memos.")
 
-api_key = st.sidebar.text_input(
-    "OpenRouter API Key",
-    value=os.getenv("OPENROUTER_API_KEY", ""),
-    type="password",
-    help="Stored in OPENROUTER_API_KEY. On Streamlit Cloud, set it in "
-         "App settings → Secrets (use key OPENROUTER_API_KEY).",
+provider = st.sidebar.selectbox(
+    "Provider",
+    ["openrouter", "gemini", "groq"],
+    index=0,
+    help="OpenRouter (many models), Gemini (Google), Groq (fast open models).",
 )
+
+# Per-provider key env mapping
+ENV_FOR = {"openrouter": "OPENROUTER_API_KEY", "gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY"}
+DEFAULT_MODEL = {
+    "openrouter": "z-ai/glm-5.3-flash",
+    "gemini": "gemini-2.5-flash",
+    "groq": "qwen/qwen3.8-27b",
+}
+
+# Resolve the key from Streamlit secrets / env WITHOUT ever showing it in the UI.
+# The sidebar field is left blank; the user only types a key here to override.
+def _get_secret(key: str):
+    # Streamlit Cloud / local .streamlit/secrets.toml
+    try:
+        return st.secrets.get(key)
+    except Exception:
+        return None
+
+stored_key = _get_secret(ENV_FOR[provider]) or os.getenv(ENV_FOR[provider], "")
+
+typed_key = st.sidebar.text_input(
+    f"{provider} API Key (optional override)",
+    value="",
+    type="password",
+    help=(
+        f"Leave blank to use the key from {ENV_FOR[provider]} "
+        f"(Streamlit secrets or env var). Type here only to override it. "
+        f"Key is never displayed."
+    ),
+)
+# Use the typed key if provided, otherwise fall back to the stored secret.
+api_key = typed_key or stored_key
 model = st.sidebar.text_input(
     "Model",
-    value=os.getenv("CLO_MODEL", "stealth/ox-alpha"),
-    help="OpenRouter model slug. Default: stealth/ox-alpha",
+    value=os.getenv("CLO_MODEL", DEFAULT_MODEL[provider]),
+    help=f"Default for {provider}: {DEFAULT_MODEL[provider]}",
 )
 
 # ----------------------------------------------------------------------------
@@ -119,7 +150,7 @@ if st.button("🚀 Extract data", type="primary"):
         st.error("Please upload, paste, or fetch some memo content first.")
     else:
         try:
-            extractor = CLOExtractor(api_key=api_key, model=model)
+            extractor = CLOExtractor(api_key=api_key, model=model, provider=provider)
             with st.spinner(f"Extracting with {model}..."):
                 data = extractor.process_text(memo_text)
             if data:
