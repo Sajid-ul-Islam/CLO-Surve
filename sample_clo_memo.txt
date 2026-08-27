@@ -1,0 +1,121 @@
+CLO SURVEILLANCE REPORT
+==============================================================
+
+Fund Name: Apex Senior Loan Fund IV
+Trustee: Wilmington Trust
+Report Date: August 31, 2026
+Reporting Period: June 1, 2026 - August 31, 2026
+
+DEAL OVERVIEW
+==============================================================
+Closing Date: March 15, 2021
+Portfolio Manager: Blackstone Credit
+Initial Collateral Size: $1,250,000,000
+Current Portfolio Size: $1,187,500,000
+
+PORTFOLIO COMPOSITION
+==============================================================
+Total Number of Loans: 147
+Total Par Outstanding: $1,187,500,000
+Weighted Average Coupon (WAC): 4.85%
+Weighted Average Life (WAL): 3.2 years
+Weighted Average Rating: BB+
+
+SECTOR BREAKDOWN:
+- Technology: 22.3% ($265M)
+- Healthcare: 18.5% ($220M)
+- Financial Services: 14.2% ($169M)
+- Consumer Discretionary: 12.1% ($144M)
+- Industrials: 11.4% ($135M)
+- Energy: 9.2% ($109M)
+- Real Estate: 7.8% ($93M)
+- Other: 4.5% ($54M)
+
+AMORTIZATION PROFILE
+==============================================================
+Scheduled Amortization: 8.2% YTD
+Total Amortization Target (Annual): 2.5%
+Actual Amortization Rate: 3.1%
+
+POOL PERFORMANCE METRICS
+==============================================================
+Cumulative Loan Defaults (Par): $42,500,000 (3.58%)
+Cumulative Default Rate: 3.58%
+30+ Days Past Due: $18,750,000 (1.58%)
+60+ Days Past Due: $5,312,500 (0.45%)
+Total Defaulted Loans: 6
+Total Loans Paid Off: 18
+
+CREDIT QUALITY DISTRIBUTION
+==============================================================
+AAA: 2.1% ($25M)
+AA: 8.5% ($101M)
+A: 18.3% ($217M)
+BBB: 31.2% ($371M)
+BB: 28.4% ($337M)
+B: 9.8% ($116M)
+CCC and below: 1.7% ($20M)
+
+RATINGS MIGRATION (Last 12 Months)
+==============================================================
+Loans Upgraded: 12 loans (representing $156M par)
+Loans Downgraded: 8 loans (representing $87M par)
+Rating Actions Net: +5 loan upgrades
+
+CLASS NOTES SUMMARY
+==============================================================
+Class A-1 Senior Secured Notes
+- Coupon: 1-Month SOFR + 1.35%
+- Balance Outstanding: $850,000,000
+- Rating: AAA
+- Interest Coverage: 1.62x
+- Value: Par + 1.25 points
+
+Class A-2 Secured Notes
+- Coupon: 1-Month SOFR + 2.15%
+- Balance Outstanding: $175,000,000
+- Rating: AA
+- Interest Coverage: 1.48x
+- Value: Par + 0.75 points
+
+Class B Secured Notes
+- Coupon: 1-Month SOFR + 4.25%
+- Balance Outstanding: $95,000,000
+- Rating: BB+
+- Interest Coverage: 1.15x
+- Value: Par - 2.50 points
+
+Class C Equity
+- Balance Outstanding: $67,500,000
+- Current Yield (est.): 8.3%
+
+COVENANT COMPLIANCE
+==============================================================
+Asset Coverage Test (Class A-1): 120.5% (Required: 105%)
+Asset Coverage Test (Class A-2): 110.3% (Required: 102%)
+Overcollateralization (Class A-1): 15.2% (Required: 10%)
+Overcollateralization (Class A-2): 8.5% (Required: 4%)
+Interest Coverage (Class A-1): 1.62x (Required: 1.40x)
+
+All covenants remain in compliance. No trigger events.
+
+MARKET OUTLOOK
+==============================================================
+Current Spread Environment: Tight (50-75 bps tighter than close)
+Refinancing Window: Opens Q1 2027
+Expected Refi Costs: 2.5-3.5% of par
+Manager Intention: Refinance entire portfolio
+
+NOTABLE CREDIT EVENTS (Last Period)
+==============================================================
+- Loan in Sector: Energy, Downgrade to CCC (1 loan, $8.5M)
+- Loan in Tech: PDD to Default (1 loan, $12M)
+- Sector Watch (Healthcare): 2 loans on negative outlook
+- Prepayments: $38.7M paid this quarter (primarily sponsored deals)
+
+NEXT STEPS
+==============================================================
+- Monitor healthcare sector loans for potential downgrades
+- Track energy sector for covenant breaches
+- Prepare for refinancing discussion Q4 2026
+- Quarterly reporting continues as scheduled

@@ -1,0 +1,83 @@
+{
+  "fund_name": "Apex Senior Loan Fund IV",
+  "trustee": "Wilmington Trust",
+  "report_date": "2026-08-31",
+  "portfolio_manager": "Blackstone Credit",
+  "closing_date": "2021-03-15",
+  "current_portfolio_size": 1187.5,
+  "total_loans": 147,
+  "wac": 4.85,
+  "wal": 3.2,
+  "weighted_avg_rating": "BB+",
+  "cumulative_default_rate": 3.58,
+  "30_plus_dpd": 18.75,
+  "60_plus_dpd": 5.3125,
+  "total_defaulted_loans": 6,
+  "amortization_ytd": 8.2,
+  "loans_upgraded_12m": 12,
+  "loans_downgraded_12m": 8,
+  "sector_breakdown": {
+    "Technology": 22.3,
+    "Healthcare": 18.5,
+    "Financial Services": 14.2,
+    "Consumer Discretionary": 12.1,
+    "Industrials": 11.4,
+    "Energy": 9.2,
+    "Real Estate": 7.8,
+    "Other": 4.5
+  },
+  "credit_quality": {
+    "AAA": "2.1%",
+    "AA": "8.5%",
+    "A": "18.3%",
+    "BBB": "31.2%",
+    "BB": "28.4%",
+    "B": "9.8%",
+    "CCC and below": "1.7%"
+  },
+  "class_notes": [
+    {
+      "class": "A-1",
+      "coupon": "1M SOFR + 1.35%",
+      "balance": 850.0,
+      "rating": "AAA",
+      "status": "Par + 1.25 points"
+    },
+    {
+      "class": "A-2",
+      "coupon": "1M SOFR + 2.15%",
+      "balance": 175.0,
+      "rating": "AA",
+      "status": "Par + 0.75 points"
+    },
+    {
+      "class": "B",
+      "coupon": "1M SOFR + 4.25%",
+      "balance": 95.0,
+      "rating": "BB+",
+      "status": "Par - 2.50 points"
+    },
+    {
+      "class": "C",
+      "coupon": "Equity",
+      "balance": 67.5,
+      "rating": "N/A",
+      "status": "8.3% yield"
+    }
+  ],
+  "covenants": {
+    "Asset Coverage (A-1)": "120.5% (Req: 105%)",
+    "Asset Coverage (A-2)": "110.3% (Req: 102%)",
+    "OC Ratio (A-1)": "15.2% (Req: 10%)",
+    "OC Ratio (A-2)": "8.5% (Req: 4%)",
+    "Interest Coverage (A-1)": "1.62x (Req: 1.40x)"
+  },
+  "major_credit_events": [
+    "Energy sector loan downgraded to CCC ($8.5M)",
+    "Technology loan moved from PDD to Default ($12M)",
+    "Healthcare sector: 2 loans on negative outlook",
+    "Quarter prepayments: $38.7M (primarily sponsored deals)"
+  ],
+  "refinancing_window": "Q1 2027",
+  "compliance_status": "All covenants remain in compliance. No trigger events."
+}
