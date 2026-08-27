@@ -1,0 +1,102 @@
+CLO REFINANCING & RESTRUCTURE MEMORANDUM
+==============================================================
+
+Fund Name: Horizon Senior Loan Fund II
+Trustee: U.S. Bank Trust Company
+Report Date: September 15, 2026
+Reporting Period: Q3 2026 Refinancing Assessment
+
+DEAL PROFILE & CAPITAL STRUCTURE
+==============================================================
+Closing Date: November 10, 2020
+Portfolio Manager: Carlyle Structured Credit
+Initial Collateral Size: $1,000,000,000
+Current Portfolio Size: $945,000,000
+Total Number of Loans: 124
+Weighted Average Coupon (WAC): 5.15%
+Weighted Average Life (WAL): 2.8 years
+Weighted Average Rating: BBB-
+
+REFINANCING OPPORTUNITY ASSESSMENT
+==============================================================
+Current Spread Environment: AAA spreads tightened by 45 bps year-over-year
+Refinancing Window: Target Q4 2026 - Q1 2027
+Expected Refi Costs: $12,500,000 (1.32% of par)
+Manager Intention: Refinance Class A-1 and Class A-2 notes to lower cost of debt by 60 bps
+Estimated Annual Interest Savings: $4,850,000
+
+PORTFOLIO RISK & CREDIT QUALITY
+==============================================================
+Cumulative Default Rate: 1.85%
+Total Defaulted Loans: 2 ($17,500,000 par)
+30+ Days Past Due: $9,200,000 (0.97%)
+60+ Days Past Due: $2,100,000 (0.22%)
+Scheduled Amortization: 4.5% YTD
+
+CREDIT QUALITY DISTRIBUTION:
+- AAA: 4.5% ($42.5M)
+- AA: 12.0% ($113.4M)
+- A: 22.5% ($212.6M)
+- BBB: 34.0% ($321.3M)
+- BB: 21.0% ($198.5M)
+- B: 5.0% ($47.25M)
+- CCC and below: 1.0% ($9.45M)
+
+SECTOR BREAKDOWN:
+- Software & Technology: 26.5% ($250.4M)
+- Healthcare & Pharma: 21.0% ($198.5M)
+- Financial Services: 15.5% ($146.5M)
+- Industrial & Logistics: 13.0% ($122.9M)
+- Consumer Goods: 10.0% ($94.5M)
+- Telecommunications: 8.0% ($75.6M)
+- Energy: 6.0% ($56.7M)
+
+RATINGS MIGRATION (Last 12 Months)
+==============================================================
+Loans Upgraded: 15 loans ($182M par)
+Loans Downgraded: 4 loans ($39M par)
+Rating Actions Net: +11 upgrades
+
+CLASS NOTES SUMMARY
+==============================================================
+Class A-1 Senior Secured Notes
+- Coupon: 1-Month SOFR + 1.45%
+- Balance Outstanding: $620,000,000
+- Rating: AAA
+- Interest Coverage: 1.78x
+
+Class A-2 Secured Notes
+- Coupon: 1-Month SOFR + 2.35%
+- Balance Outstanding: $135,000,000
+- Rating: AA
+- Interest Coverage: 1.55x
+
+Class B Secured Notes
+- Coupon: 1-Month SOFR + 4.50%
+- Balance Outstanding: $80,000,000
+- Rating: BB+
+- Interest Coverage: 1.22x
+
+Class C Subordinated Equity
+- Balance Outstanding: $110,000,000
+- Current Yield (est.): 11.2%
+
+COVENANT COMPLIANCE
+==============================================================
+Asset Coverage Test (Class A-1): 124.2% (Required: 105%)
+Asset Coverage Test (Class A-2): 114.8% (Required: 102%)
+Overcollateralization (Class A-1): 18.5% (Required: 10%)
+Interest Coverage (Class A-1): 1.78x (Required: 1.40x)
+
+All covenants in full compliance. Portfolio eligible for senior debt refinancing.
+
+NOTABLE CREDIT EVENTS
+==============================================================
+- Tech sector loan upgrade to BB+ ($25M)
+- Prepayments: $42.0M received during Q3
+- Energy loan under watchlist ($9.4M, covenant compliant)
+
+RECOMMENDATION & NEXT STEPS
+==============================================================
+- Proceed with syndicate bank selection for Class A-1 refi
+- Target pricing call in November 2026

@@ -151,3 +151,75 @@ class CommitteeMemoGenerator:
             lines.append(f"Rationale: {analyst_notes}")
         lines.append("==============================================================")
         return "\n".join(lines)
+
+    def generate_html_brief(
+        self,
+        recommendation: str = "Refinance",
+        target_period: str = "Q1 2027",
+        analyst_notes: str = "",
+        action_items: Optional[List[str]] = None
+    ) -> str:
+        """Generate styled HTML Printable Brief document."""
+        d = self.data
+        today = datetime.now().strftime("%B %d, %Y")
+        actions = action_items or ["Review portfolio sector concentrations", "Prepare refinancing syndicate terms"]
+
+        actions_html = "".join([f"<li>{act}</li>" for act in actions])
+        
+        notes_rows = ""
+        for n in d.get("class_notes", []):
+            notes_rows += f"""<tr>
+                <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">{n.get('class')}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${n.get('balance', 0)}M</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">{n.get('rating', 'N/A')}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">{n.get('coupon', 'N/A')}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">{n.get('status', 'OK')}</td>
+            </tr>"""
+
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>CLO Committee Brief - {d.get('fund_name', 'CLO')}</title>
+    <style>
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #1a1a1a; margin: 30px; }}
+        .header {{ border-bottom: 3px solid #1E88E5; padding-bottom: 10px; margin-bottom: 20px; }}
+        .title {{ font-size: 24px; color: #0D47A1; margin: 0; }}
+        .subtitle {{ font-size: 14px; color: #666; margin-top: 5px; }}
+        .badge {{ background: #E3F2FD; color: #1565C0; padding: 4px 12px; border-radius: 4px; font-weight: bold; font-size: 12px; }}
+        table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
+        th {{ background: #F5F5F5; text-align: left; padding: 8px; border: 1px solid #ddd; }}
+        .rec-box {{ background: #F1F8E9; border-left: 5px solid #4CAF50; padding: 15px; margin: 20px 0; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="title">🏛️ CLO INVESTMENT COMMITTEE MEMORANDUM</h1>
+        <div class="subtitle">Date: {today} | Deal: <strong>{d.get('fund_name', 'CLO Deal')}</strong></div>
+    </div>
+
+    <h2>Deal Overview</h2>
+    <table>
+        <tr><th>Manager</th><td>{d.get('portfolio_manager', 'N/A')}</td><th>Trustee</th><td>{d.get('trustee', 'N/A')}</td></tr>
+        <tr><th>Portfolio Size</th><td>${d.get('current_portfolio_size', 0)}M</td><th>Loans Count</th><td>{d.get('total_loans', 0)}</td></tr>
+        <tr><th>WAC</th><td>{d.get('wac', 0)}%</td><th>WAL</th><td>{d.get('wal', 0)} years</td></tr>
+        <tr><th>Default Rate</th><td>{d.get('cumulative_default_rate', 0)}%</td><th>Compliance</th><td><span class="badge">{d.get('compliance_status', 'OK')}</span></td></tr>
+    </table>
+
+    <h2>Capital Structure</h2>
+    <table>
+        <tr><th>Tranche</th><th>Balance</th><th>Rating</th><th>Coupon</th><th>Status</th></tr>
+        {notes_rows}
+    </table>
+
+    <div class="rec-box">
+        <h3 style="margin-top:0; color:#2E7D32;">RECOMMENDATION: {recommendation.upper()}</h3>
+        <p><strong>Target Window:</strong> {target_period}</p>
+        <p><strong>Analyst Rationale:</strong> {analyst_notes}</p>
+    </div>
+
+    <h2>Action Items</h2>
+    <ul>{actions_html}</ul>
+</body>
+</html>"""
+        return html
