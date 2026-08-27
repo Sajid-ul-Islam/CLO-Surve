@@ -13,6 +13,10 @@ __pycache__/
 # Generated extraction outputs
 clo_extraction.json
 clo_extraction.xlsx
+clo_gemini.json
+clo_gemini.xlsx
+clo_groq.json
+clo_groq.xlsx
 *.xlsx
 *.log
 
